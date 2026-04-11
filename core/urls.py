@@ -16,9 +16,14 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.http import JsonResponse
+
+def root(request):
+    return JsonResponse({"status": "ok", "message": "Surveillance Monitor API"})
 
 urlpatterns = [
+    path('', root),
     path('admin/', admin.site.urls),
     path('api/auth/', include('authentication.urls')),
-    path('api/security/',include('security.urls')),
+    path('api/security/', include('security.urls')),
 ]
