@@ -19,6 +19,7 @@ GOOGLE_CLIENT_ID = "76659038293-5ojfhp80aubesktpfhs45v0crqs3ljej.apps.googleuser
 class GoogleLoginView(APIView):
     def post(self, request):
         token = request.data.get('token')
+        print(f"--- [DEBUG: Google Login Attempt with token: {token[:10]}... ] ---")
         if not token:
             return Response({'error': 'No token provided'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -67,6 +68,7 @@ class LoginView(APIView):
         password = request.data.get('password')
 
         # Use email as username since we store it that way
+        print(f"--- [DEBUG: Login Attempt for email: {email} ] ---")
         user = authenticate(username=email, password=password)
         
         if user is not None:
@@ -95,8 +97,10 @@ class SignupView(APIView):
             return Response({'error': 'Email and password are required'}, status=status.HTTP_400_BAD_REQUEST)
 
         if User.objects.filter(username=email).exists():
+            print(f"--- [DEBUG: Signup Failed - User {email} already exists ] ---")
             return Response({'error': 'User with this email already exists'}, status=status.HTTP_400_BAD_REQUEST)
 
+        print(f"--- [DEBUG: Creating new user: {email} ({name}) ] ---")
         user = User.objects.create_user(username=email, email=email, password=password, first_name=name)
         
         refresh = RefreshToken.for_user(user)

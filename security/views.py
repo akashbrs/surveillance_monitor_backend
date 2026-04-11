@@ -51,6 +51,7 @@ class ThreatLogView(APIView):
     def post(self, request):
         data = request.data
 
+        print(f"--- [DEBUG: New Threat Log Received | Target: {data.get('target')} | Type: {data.get('attack_type')} | IP: {data.get('ip')} ] ---")
         ThreatLog.objects.create(
             target=data.get("target", "unknown"),
             ip=data.get("ip"),
