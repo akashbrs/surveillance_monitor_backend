@@ -18,12 +18,15 @@ class ThreatLogView(APIView):
         return [IsAuthenticated()]
 
     def get_app_name(self, target):
-        if target == "electronics":
-            return "Electronics App"
-        elif target == "fashion":
+        target_lower = target.lower()
+        if target_lower == "electronics" or target_lower == "electron":
+            return "Electron App"
+        elif target_lower == "fashion":
             return "Fashion App"
-        elif target == "organization":
+        elif target_lower == "organization":
             return "Organization App"
+        elif target_lower == "veloura":
+            return "Veloura App"
         return "Unknown"
 
     # ✅ GET → for dashboard
@@ -32,48 +35,73 @@ class ThreatLogView(APIView):
 
         data = [
             {
-                "id": str(log.id),
+                "id": log.id,
                 "ip": log.ip,
-                "attackType": log.attack_type,  # ✅ Frontend expects camelCase
+                "attackType": log.attack_type,
                 "payload": log.payload,
                 "severity": self.get_severity(log.attack_type),
                 "timestamp": log.timestamp.isoformat(),  
                 "status": "Active" if not log.resolved else "Resolved",  
+                "resolved": log.resolved,
+                "ignored": log.ignored,
                 "app": self.get_app_name(log.target),
-                "target": log.target
+                "target": log.target,
+                "endpoint": log.endpoint,
+                "userAgent": log.user_agent
             }
             for log in logs
         ]
 
         return Response({"data": data})
 
-    # ✅ POST → from electronics backend
+    # ✅ POST → from other services (electronics, veloura, etc.)
     def post(self, request):
         data = request.data
 
-        print(f"--- [DEBUG: New Threat Log Received | Target: {data.get('target')} | Type: {data.get('attack_type')} | IP: {data.get('ip')} ] ---")
-        ThreatLog.objects.create(
-            target=data.get("target", "unknown"),
-            ip=data.get("ip"),
-            attack_type=data.get("attack_type"),
-            endpoint=data.get("endpoint", "unknown"),  # ✅ FIXED
-            payload=data.get("payload", ""),
-            user_agent=data.get("user_agent", "")
-        )
+        # Support both camelCase and snake_case for incoming logs
+        target = data.get("target") or data.get("app") or "unknown"
+        ip = data.get("ip") or data.get("attackerIp") or "unknown"
+        attack_type = data.get("attack_type") or data.get("attackType") or "Unknown"
+        endpoint = data.get("endpoint") or "unknown"
+        payload = data.get("payload") or ""
+        user_agent = data.get("user_agent") or data.get("userAgent") or ""
 
-        return Response({"message": "Log received"})
+        print(f"--- [DEBUG: New Threat Log Received | Target: {target} | Type: {attack_type} | IP: {ip} ] ---")
+        
+        try:
+            log = ThreatLog.objects.create(
+                target=target,
+                ip=ip,
+                attack_type=attack_type,
+                endpoint=endpoint,
+                payload=payload,
+                user_agent=user_agent
+            )
+            return Response({
+                "message": "Log received", 
+                "log_id": log.id
+            }, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            print(f"--- [ERROR: Failed to save log: {str(e)} ] ---")
+            return Response({
+                "message": "Failed to save log", 
+                "error": str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
 
     # 🔥 Severity logic (Aligned with frontend severityColor helper)
     def get_severity(self, attack_type):
-        return {
-            "SQL Injection": "Critical",
-            "SQLi": "Critical",
-            "XSS": "High",
-            "DDOS": "Critical",
-            "DDoS": "Critical",
-            "Brute Force": "High",
-            "Bruteforce": "High"
-        }.get(attack_type, "Low")
+        at = str(attack_type).lower()
+        if "sqli" in at or "injection" in at:
+            return "Critical"
+        if "xss" in at:
+            return "High"
+        if "ddos" in at:
+            return "Critical"
+        if "brute" in at:
+            return "High"
+        if "auth" in at or "login" in at:
+            return "Medium"
+        return "Low"
     
 
     
