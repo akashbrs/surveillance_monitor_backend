@@ -20,11 +20,11 @@ class ThreatLogView(APIView):
 
     def get_app_name(self, target):
         target_lower = target.lower()
-        if target_lower == "electronics" or target_lower == "electron":
+        if any(x in target_lower for x in ["electron", "electronics"]):
             return "Electron Website"
-        elif target_lower == "fashion" or target_lower == "veloura":
+        elif any(x in target_lower for x in ["fashion", "veloura"]):
             return "Veloura Website"
-        elif target_lower == "organization":
+        elif "organization" in target_lower:
             return "Organization Website"
         return "Unknown"
 
@@ -58,12 +58,15 @@ class ThreatLogView(APIView):
         data = request.data
 
         # Support both camelCase and snake_case for incoming logs
-        target = data.get("target") or data.get("app") or "unknown"
-        ip = data.get("ip") or data.get("attackerIp") or "unknown"
+        target = data.get("target") or data.get("app") or data.get("application") or "unknown"
+        
+        # Fallback to REMOTE_ADDR if ip is not provided in the payload
+        ip = data.get("ip") or data.get("attackerIp") or request.META.get('REMOTE_ADDR') or "unknown"
+        
         raw_attack_type = data.get("attack_type") or data.get("attackType") or "Unknown"
         endpoint = data.get("endpoint") or "unknown"
         payload = data.get("payload") or ""
-        user_agent = data.get("user_agent") or data.get("userAgent") or ""
+        user_agent = data.get("user_agent") or data.get("userAgent") or request.META.get('HTTP_USER_AGENT', '')
 
         # Normalize attack type for dashboard charts
         at_lower = raw_attack_type.lower()
@@ -92,7 +95,8 @@ class ThreatLogView(APIView):
             return Response({
                 "message": "Log received", 
                 "log_id": log.id,
-                "normalized_type": attack_type
+                "normalized_type": attack_type,
+                "status": "success"
             }, status=status.HTTP_201_CREATED)
         except Exception as e:
             print(f"--- [ERROR: Failed to save log: {str(e)} ] ---")

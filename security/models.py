@@ -11,7 +11,7 @@ class ThreatLog(models.Model):
     target = models.CharField(max_length=100)   # 🔥 NEW (MAIN FIELD)
 
     ip = models.CharField(max_length=100)
-    attack_type = models.CharField(max_length=20)
+    attack_type = models.CharField(max_length=100)
     endpoint = models.CharField(max_length=255,blank=True,null = True)
     payload = models.TextField(blank=True)
     user_agent = models.TextField(blank=True)
