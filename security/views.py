@@ -20,13 +20,11 @@ class ThreatLogView(APIView):
     def get_app_name(self, target):
         target_lower = target.lower()
         if target_lower == "electronics" or target_lower == "electron":
-            return "Electron App"
-        elif target_lower == "fashion":
-            return "Fashion App"
+            return "Electron Website"
+        elif target_lower == "fashion" or target_lower == "veloura":
+            return "Veloura Website"
         elif target_lower == "organization":
-            return "Organization App"
-        elif target_lower == "veloura":
-            return "Veloura App"
+            return "Organization Website"
         return "Unknown"
 
     # ✅ GET → for dashboard
