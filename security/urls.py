@@ -1,14 +1,15 @@
 from django.urls import path
-from .views import ThreatLogView, AttackStatsView, AttackTypeView, TopIPView
+from .views import AttackLogView, AttackStatsView, RecentAttacksView
 
 urlpatterns = [
-    # Main log endpoint (GET: List, POST: Receive)
-    path('logs/', ThreatLogView.as_view(), name='logs'),
-
-    # Other dashboard views
+    # Full history
+    path('', AttackLogView.as_view(), name='attacks'),
+    
+    # Stats
     path('stats/', AttackStatsView.as_view(), name='stats'),
-    path('types/', AttackTypeView.as_view(), name='types'),
-    path('top-ips/', TopIPView.as_view(), name='top_ips'),
+    
+    # Recent
+    path('recent/', RecentAttacksView.as_view(), name='recent'),
 ]
 
 
