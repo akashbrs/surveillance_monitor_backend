@@ -1,3 +1,4 @@
+from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.db.models import Count
@@ -59,12 +60,25 @@ class ThreatLogView(APIView):
         # Support both camelCase and snake_case for incoming logs
         target = data.get("target") or data.get("app") or "unknown"
         ip = data.get("ip") or data.get("attackerIp") or "unknown"
-        attack_type = data.get("attack_type") or data.get("attackType") or "Unknown"
+        raw_attack_type = data.get("attack_type") or data.get("attackType") or "Unknown"
         endpoint = data.get("endpoint") or "unknown"
         payload = data.get("payload") or ""
         user_agent = data.get("user_agent") or data.get("userAgent") or ""
 
-        print(f"--- [DEBUG: New Threat Log Received | Target: {target} | Type: {attack_type} | IP: {ip} ] ---")
+        # Normalize attack type for dashboard charts
+        at_lower = raw_attack_type.lower()
+        if "sqli" in at_lower or "injection" in at_lower:
+            attack_type = "SQLi"
+        elif "xss" in at_lower:
+            attack_type = "XSS"
+        elif "brute" in at_lower:
+            attack_type = "Bruteforce"
+        elif "ddos" in at_lower:
+            attack_type = "DDoS"
+        else:
+            attack_type = raw_attack_type
+
+        print(f"--- [DEBUG: New Threat Log Received | Target: {target} | Type: {attack_type} (Raw: {raw_attack_type}) | IP: {ip} ] ---")
         
         try:
             log = ThreatLog.objects.create(
@@ -77,7 +91,8 @@ class ThreatLogView(APIView):
             )
             return Response({
                 "message": "Log received", 
-                "log_id": log.id
+                "log_id": log.id,
+                "normalized_type": attack_type
             }, status=status.HTTP_201_CREATED)
         except Exception as e:
             print(f"--- [ERROR: Failed to save log: {str(e)} ] ---")
