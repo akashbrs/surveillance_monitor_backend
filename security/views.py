@@ -55,13 +55,21 @@ class ThreatLogView(APIView):
 
         return Response({"data": data})
 
+    def get_client_ip(self, request):
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
+
     # ✅ POST → from other services (electronics, veloura, etc.)
     def post(self, request):
         data = request.data
 
         # Support both camelCase and snake_case for incoming logs
         target = data.get("target") or data.get("app") or "unknown"
-        ip = data.get("ip") or data.get("attackerIp") or "unknown"
+        ip = data.get("ip") or data.get("attackerIp") or self.get_client_ip(request)
         attack_type = data.get("attack_type") or data.get("attackType") or "Unknown"
         endpoint = data.get("endpoint") or "unknown"
         payload = data.get("payload") or ""
